@@ -1,10 +1,10 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/c2675260c/pengme-backend
-    - echo "🚀 Déploiement PengMe (branche main)..."
+    - echo "🚀 Déploiement PengMe (main) ..."
     - cd $DEPLOYPATH
     - /opt/alt/php83/usr/bin/php artisan down || true
-    - /usr/local/bin/composer install --no-dev --optimize-autoloader
+    - composer install --no-dev --optimize-autoloader
     - /opt/alt/php83/usr/bin/php artisan migrate --force
     - /opt/alt/php83/usr/bin/php artisan storage:link || true
     - chmod -R 775 storage bootstrap/cache
