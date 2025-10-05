@@ -8,39 +8,60 @@ use Illuminate\Support\Facades\Hash;
 
 class EmployeeProfileController extends Controller
 {
-    public function show(Request $request){
-        $e = $request->user(); // Employee via sanctum
+    /**
+     * 🧾 Affiche le profil de l’employé connecté
+     */
+    public function show(Request $request)
+    {
+        $e = $request->user(); // Employé connecté via Sanctum
+
         return [
-            'first_name'=>$e->first_name,
-            'last_name'=>$e->last_name,
-            'email'=>$e->email,
-            'phone'=>$e->phone,
-            'monthly_salary'=>$e->monthly_salary,
-            'eligible'=>$e->eligible,
+            'first_name'       => $e->first_name,
+            'last_name'        => $e->last_name,
+            'email'            => $e->email,
+            'phone'            => $e->phone,
+            'monthly_salary'   => $e->monthly_salary,
+            'eligible'         => (bool) $e->eligible,
+
+            // ✅ Bloc entreprise ajouté
+            'company' => [
+                'id'   => $e->company->id ?? null,
+                'name' => $e->company->name ?? 'Entreprise inconnue',
+                'code' => $e->company->code ?? null,
+            ],
         ];
     }
 
-    public function update(Request $request){
+    /**
+     * ✏️ Met à jour le profil de l’employé (email, téléphone, mot de passe)
+     */
+    public function update(Request $request)
+    {
         $e = $request->user();
+
         $data = $request->validate([
-            'email'=>'nullable|email',
-            'phone'=>'nullable|string|max:30',
-            'password'=>'nullable|string|min:8'
+            'email'    => 'nullable|email',
+            'phone'    => 'nullable|string|max:30',
+            'password' => 'nullable|string|min:8',
         ]);
 
-        // Mise à jour générale (optionnelle si tu veux permettre de changer son profil plus tard)
-        if(isset($data['password'])){
+        // Hash du mot de passe si fourni
+        if (isset($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         }
 
         $e->update($data);
-        return ['message'=>'Profil mis à jour'];
+
+        return ['message' => 'Profil mis à jour'];
     }
 
-    // 🚀 Nouveau endpoint : définir le mot de passe pour la première fois
-    public function setPassword(Request $request){
+    /**
+     * 🔐 Permet de définir un mot de passe pour la première fois
+     */
+    public function setPassword(Request $request)
+    {
         $request->validate([
-            'password' => 'required|string|min:8|confirmed'
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
         $e = $request->user();
