@@ -1,16 +1,36 @@
+---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/c2675260c/pengme-backend
-    - echo "🚀 Déploiement PengMe (main) ..."
-    - cd $DEPLOYPATH
-    - /opt/alt/php83/usr/bin/php artisan down || true
-    - composer install --no-dev --optimize-autoloader
-    - /opt/alt/php83/usr/bin/php artisan migrate --force
-    - /opt/alt/php83/usr/bin/php artisan storage:link || true
-    - chmod -R 775 storage bootstrap/cache
-    - /opt/alt/php83/usr/bin/php artisan config:cache
-    - /opt/alt/php83/usr/bin/php artisan route:cache
-    - /opt/alt/php83/usr/bin/php artisan view:cache
-    - /opt/alt/php83/usr/bin/php artisan optimize
-    - /opt/alt/php83/usr/bin/php artisan up
-    - echo "✅ Déploiement terminé avec succès !"
+    # 0) Variables & chemins
+    - export REPO_PATH="/home/c2675260c/pengme"
+    - export WEBROOT="/home/c2675260c/public_html"
+
+    # 1) Sélection PHP (prend /usr/local/bin/php, sinon la dernière ea-php dispo)
+    - if [ -x "/usr/local/bin/php" ]; then PHPBIN="/usr/local/bin/php"; else PHPBIN="$(ls -1 /opt/cpanel/ea-php*/root/usr/bin/php 2>/dev/null | tail -n1)"; fi
+    - echo "Using PHP: $PHPBIN"
+
+    # 2) Composer (prend 'composer' si présent, sinon binaire cPanel)
+    - if command -v composer >/dev/null 2>&1; then COMPOSER="composer"; elif [ -x "/opt/cpanel/composer/bin/composer" ]; then COMPOSER="/opt/cpanel/composer/bin/composer"; else COMPOSER="$PHPBIN -d detect_unicode=0 /opt/cpanel/composer/bin/composer"; fi
+    - echo "Using Composer: $COMPOSER"
+
+    # 3) Installer dépendances (dans le repo)
+    - cd $REPO_PATH
+    - $COMPOSER install --no-dev --optimize-autoloader
+
+    # 4) Déployer les assets publics vers public_html (miroir exact)
+    - rsync -a --delete $REPO_PATH/public/ $WEBROOT/
+
+    # 5) Corriger index.php pour pointer vers ../pengme/ (indispensable sur mutualisé)
+    - sed -i "s#require __DIR__.'/../vendor/autoload.php';#require __DIR__.'/../pengme/vendor/autoload.php';#g" $WEBROOT/index.php
+    - sed -i "s#require_once __DIR__.'/../bootstrap/app.php';#require_once __DIR__.'/../pengme/bootstrap/app.php';#g" $WEBROOT/index.php
+
+    # 6) Commandes Laravel
+    - $PHPBIN $REPO_PATH/artisan storage:link || true
+    - $PHPBIN $REPO_PATH/artisan migrate --force || true
+    - $PHPBIN $REPO_PATH/artisan config:cache
+    - $PHPBIN $REPO_PATH/artisan route:cache
+    - $PHPBIN $REPO_PATH/artisan view:cache
+
+    # 7) Permissions minimales
+    - find $REPO_PATH/storage -type d -exec chmod 775 {} \; || true
+    - find $REPO_PATH/bootstrap/cache -type d -exec chmod 775 {} \; || true
