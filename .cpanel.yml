@@ -13,27 +13,34 @@ deployment:
     - if command -v composer >/dev/null 2>&1; then COMPOSER="composer"; elif [ -x "/opt/cpanel/composer/bin/composer" ]; then COMPOSER="/opt/cpanel/composer/bin/composer"; else COMPOSER="$PHPBIN -d detect_unicode=0 /opt/cpanel/composer/bin/composer"; fi
     - echo "Using Composer: $COMPOSER"
 
-    # 3) Installer dépendances (dans le repo)
+    # 3) Avant tout : sauvegarder les fichiers uploadés récents
+    # (au cas où le déploiement effacerait public_html/storage)
+    - echo "Backing up uploaded files..."
+    - mkdir -p $REPO_PATH/storage/app/public
+    - rsync -a $WEBROOT/storage/ $REPO_PATH/storage/app/public/
+
+    # 4) Installer dépendances (dans le repo)
     - cd $REPO_PATH
     - $COMPOSER install --no-dev --optimize-autoloader
 
-    # 4) Déployer les assets publics vers public_html (miroir exact)
-    - rsync -a --delete $REPO_PATH/public/ $WEBROOT/
+    # 5) Déployer les assets publics vers public_html (miroir exact, sauf stockage uploads)
+    - rsync -a --delete --exclude storage $REPO_PATH/public/ $WEBROOT/
 
-    # 5) Corriger index.php pour pointer vers ../pengme/ (indispensable sur mutualisé)
+    # 6) Corriger index.php pour pointer vers ../pengme/
     - sed -i "s#require __DIR__.'/../vendor/autoload.php';#require __DIR__.'/../pengme/vendor/autoload.php';#g" $WEBROOT/index.php
     - sed -i "s#require_once __DIR__.'/../bootstrap/app.php';#require_once __DIR__.'/../pengme/bootstrap/app.php';#g" $WEBROOT/index.php
 
-    # 6) Commandes Laravel
+    # 7) Commandes Laravel
     - $PHPBIN $REPO_PATH/artisan migrate --force || true
     - $PHPBIN $REPO_PATH/artisan config:cache
     - $PHPBIN $REPO_PATH/artisan route:cache
     - $PHPBIN $REPO_PATH/artisan view:cache
 
-    # 7) Permissions minimales
+    # 8) Permissions minimales
     - find $REPO_PATH/storage -type d -exec chmod 775 {} \; || true
     - find $REPO_PATH/bootstrap/cache -type d -exec chmod 775 {} \; || true
 
-    # 8) Copie des fichiers uploadés (solution PengMe pour cPanel)
+    # 9) Copier les fichiers uploadés vers le site public
+    - echo "Syncing uploaded files to webroot..."
     - mkdir -p $WEBROOT/storage
     - rsync -a $REPO_PATH/storage/app/public/ $WEBROOT/storage/
