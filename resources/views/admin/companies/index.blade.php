@@ -45,7 +45,7 @@
         <form method="post" action="{{ route('admin.stopImpersonate') }}">
           @csrf
           <button class="btn btn-outline-dark btn-sm">
-            <i class="bi bi-box-arrow-left me-1"></i> Arrêter impersonation
+            <i class="bi bi-box-arrow-left me-1"></i> Arrêter l'impersonation
           </button>
         </form>
       @endif
