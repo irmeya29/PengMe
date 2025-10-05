@@ -25,7 +25,6 @@ deployment:
     - sed -i "s#require_once __DIR__.'/../bootstrap/app.php';#require_once __DIR__.'/../pengme/bootstrap/app.php';#g" $WEBROOT/index.php
 
     # 6) Commandes Laravel
-    - $PHPBIN $REPO_PATH/artisan storage:link || true
     - $PHPBIN $REPO_PATH/artisan migrate --force || true
     - $PHPBIN $REPO_PATH/artisan config:cache
     - $PHPBIN $REPO_PATH/artisan route:cache
@@ -34,3 +33,7 @@ deployment:
     # 7) Permissions minimales
     - find $REPO_PATH/storage -type d -exec chmod 775 {} \; || true
     - find $REPO_PATH/bootstrap/cache -type d -exec chmod 775 {} \; || true
+
+    # 8) Copie des fichiers uploadés (solution PengMe pour cPanel)
+    - mkdir -p $WEBROOT/storage
+    - rsync -a $REPO_PATH/storage/app/public/ $WEBROOT/storage/
