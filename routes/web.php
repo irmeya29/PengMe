@@ -21,7 +21,10 @@ use App\Http\Controllers\Admin\AdminUserController;
 
 // ===============================
 // Accueil (optionnel)
-Route::get('/', fn () => view('welcome'));
+
+// Route::get('/', fn () => view('welcome'));
+Route::view('/', 'maintenance'); // << page maintenance
+
 
 // ===============================
 // 🚀 Auth Entreprise (public)
